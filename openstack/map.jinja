@@ -1,0 +1,10 @@
+{% set openstack=salt["grains.filter_by"]({
+  "Debian":{
+  },
+  "RedHat":{
+  },
+  "default":{
+  },
+  },merge=salt["pillar.get"]("openstack:lookup")) %}
+{#- vim:ft=sls
+-#}

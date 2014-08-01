@@ -1,0 +1,168 @@
+{% set baseip="10.0.0.14" %}
+
+{% set base={
+  "public_interface": "eth0",
+  "private_interface": "eth1",
+  "internal_interface": "eth0",
+  "admin_interface": "eth0",
+
+  "mysql_ip": baseip,
+  "mysql_root_password": "pass",
+
+  "memcached_ip": ["10.0.0.14"],
+
+  "glance_host": baseip,
+
+  "rabbitmq_ip": baseip,
+  "rabbitmq_user": "openstack",
+  "rabbitmq_password": "pass",
+
+  "keystone_mysql_password": "pass",
+  "keystone_admin_password": "pass",
+
+  "glance_mysql_password": "pass",
+  "keystone_glance_password": "pass",
+  
+  "nova_mysql_password": "pass",
+  "keystone_nova_password": "pass",
+
+  "cinder_mysql_password": "pass",
+  "keystone_cinder_password": "pass",
+
+  "email": "zhang.lei.fly@gmail.com",
+
+  "keystone_ip" : baseip,
+
+  "admin_token": "admin_token",
+
+  "debug": False,
+  "verbose": False,
+}%} 
+
+{% do base.update({
+  "public_ip": salt["grains.get"]("ip_interfaces:" + base.public_interface)|first,
+  "internal_ip": salt["grains.get"]("ip_interfaces:" + base.internal_interface)|first,
+  "admin_ip": salt["grains.get"]("ip_interfaces:" + base.admin_interface)|first,
+}) %}
+
+mysql.pass: {{ base.mysql_root_password }}
+mysql.charset: 'utf8'
+
+keystone.token: {{ base.admin_token }}
+keystone.endpoint: http://{{ baseip }}:35357/v2.0
+
+mysql:
+  server:
+    root_password: {{ base.mysql_root_password }}
+    bind-address: '0.0.0.0'
+
+memcached:
+  listen_address: '0.0.0.0'
+
+rabbitmq:
+  policy:
+    rabbitmq_policy:
+      - name: HA
+      - pattern: '.*'
+      - definition: '{"ha-mode": "all"}'
+  user:
+    {{ base.rabbitmq_user }}:
+      - password: {{ base.rabbitmq_password }}
+      - force: True
+      - tags: administrator
+      - perms:
+        - '/':
+          - '.*'
+          - '.*'
+          - '.*'
+      - runas: root
+
+keystone:
+  public_ip: {{ base.public_ip }}
+  internal_ip: {{ base.internal_ip }}
+  admin_ip: {{ base.admin_ip }}
+  mysql:
+    ip: {{ base.mysql_ip }}
+    host: '%'
+    password: {{ base.keystone_mysql_password }}
+  memcached:
+    ip: {{ base.memcached_ip }}
+  keystone:
+    admin:
+      password: {{ base.keystone_admin_password }}
+      email: {{ base.email }}
+  config:
+    DEFAULT:
+      admin_token: {{ base.admin_token }}
+      debug: {{ base.debug }}
+      verbose: {{ base.verbose }}
+
+glance:
+  public_ip: {{ base.public_ip }}
+  internal_ip: {{ base.internal_ip }}
+  admin_ip: {{ base.admin_ip }}
+  mysql:
+    ip: {{ base.mysql_ip }}
+    password: {{ base.glance_mysql_password }}
+  keystone:
+    host: {{ base.keystone_ip }}
+    password: {{ base.keystone_glance_password }}
+    email: {{ base.email }}
+  api-config:
+    DEFAULT:
+      debug: {{ base.debug }}
+      verbose: {{ base.verbose }}
+  reg-config:
+    DEFAULT:
+      debug: {{ base.debug }}
+      verbose: {{ base.verbose }}
+
+cinder:
+  public_ip: {{ base.public_ip }}
+  internal_ip: {{ base.internal_ip }}
+  admin_ip: {{ base.admin_ip }}
+  mysql:
+    ip: {{ base.mysql_ip }}
+    password: {{ base.cinder_mysql_password }}
+    host: '%'
+  keystone:
+    password: {{ base.keystone_cinder_password }}
+    email: {{ base.email }}
+    host: {{ base.keystone_ip }}
+  rabbitmq:
+    name: {{ base.rabbitmq_user }}
+    password: {{ base.rabbitmq_password }}
+    ip: {{ base.rabbitmq_ip }}
+  config:
+    DEFAULT:
+      debug: {{ base.debug }}
+      verbose: {{ base.debug }}
+
+nova:
+  public_ip: {{ base.public_ip }}
+  internal_ip: {{ base.internal_ip }}
+  admin_ip: {{ base.admin_ip }}
+  public_interface: {{ base.public_interface }}
+  private_interface: {{ base.private_interface }}
+  keystone:
+    password: {{ base.keystone_nova_password }}
+    email: {{ base.email }}
+    host: {{ base.keystone_ip }}
+  rabbitmq:
+    name: {{ base.rabbitmq_user }}
+    password: {{ base.rabbitmq_password }}
+    ip: {{ base.rabbitmq_ip }}
+  mysql:
+    ip: {{ base.mysql_ip }}
+    host: '%'
+    password: {{ base.nova_mysql_password }}
+  glance:
+    host: {{ base.glance_host }}
+  config:
+    DEFAULT:
+      novncproxy_base_ip: 192.168.0.208
+    libvirt:
+      virt_type: qemu
+
+{#- vim:ft=sls
+-#}
