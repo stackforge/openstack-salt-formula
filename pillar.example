@@ -54,7 +54,8 @@ keystone.endpoint: http://{{ baseip }}:35357/v2.0
 mysql:
   server:
     root_password: {{ base.mysql_root_password }}
-    bind-address: '0.0.0.0'
+    mysqld:
+      bind-address: '0.0.0.0'
 
 memcached:
   listen_address: '0.0.0.0'
